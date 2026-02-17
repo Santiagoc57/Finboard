@@ -83,6 +83,13 @@ Formato inspirado en Keep a Changelog.
 - Columna `Tendencia` alineada con el cambio diario de la fila:
   - la mini-grafica ahora se construye con `prev_close/open/high/low/close` (movimiento del dia).
   - se evita desalineacion visual con `% Cambio` cuando la serie YTD viene bajista pero el dia cierra al alza.
+- Estabilidad en entorno local:
+  - `NEXT_PUBLIC_API_BASE_URL` de ejemplo y fallback interno actualizado a `http://127.0.0.1:8000` para evitar fallos `localhost` (IPv6/IPv4) que se ven como CORS `status null`.
+  - `suppressHydrationWarning` agregado en `<html>` para reducir ruido de hidratacion causado por extensiones que inyectan clases/atributos.
+- Deploy Netlify corregido:
+  - frontend ajustado a `output: "export"` para publicar estatico en `out/`.
+  - agregado `frontend/netlify.toml` (`build` + `publish = out`).
+  - se evita publicar `.next` directamente (causaba 404/MIME en chunks JS).
 
 ### Verified
 - Backend:
