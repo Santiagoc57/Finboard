@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Node / Next
+frontend/node_modules/
+frontend/.next/
+frontend/.netlify/
+frontend/.env.local
+backend/.runtime_settings.json
+
+# OS
+.DS_Store
+
+# Tooling cache
+.pytest_cache/
+
+.streamlit/*.log

@@ -1,0 +1,36 @@
+@tailwind components;
+
+@layer components {
+  .card-shell {
+    @apply rounded-xl border border-border-light bg-surface-light shadow-panel;
+  }
+
+  .chip-btn {
+    @apply inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-border-light bg-white px-4 py-2 text-sm font-medium text-text-main shadow-sm transition hover:bg-gray-50;
+  }
+
+  .chip-k {
+    @apply text-xs uppercase tracking-wider text-text-muted;
+  }
+
+  .chip-dot {
+    @apply h-2 w-2 rounded-full bg-primary;
+  }
+
+  .chip-select {
+    @apply min-w-[88px] cursor-pointer bg-transparent pr-5 text-sm font-semibold text-text-main outline-none;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #64748b 50%), linear-gradient(135deg, #64748b 50%, transparent 50%);
+    background-position: calc(100% - 12px) calc(50% - 2px), calc(100% - 7px) calc(50% - 2px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+
+  .table-head {
+    @apply bg-gray-50 text-xs uppercase tracking-wider text-text-muted;
+  }
+
+  .table-cell-mono {
+    @apply font-mono tabular-nums text-[13px];
+  }
+}
