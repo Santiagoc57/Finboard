@@ -9,7 +9,7 @@ import requests
 import yfinance as yf
 from dateutil.relativedelta import relativedelta
 
-from backend.app.config import (
+from ..config import (
     ASSETS_INDICES_ETFS,
     CCY_FLAGS,
     CURRENCY_CANDIDATES,

@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from backend.app.config import DEFAULT_MARKET, MarketCode
+from .config import DEFAULT_MARKET, MarketCode
 
 
 class CustomAssetPayload(BaseModel):
