@@ -6,6 +6,8 @@ import {
   FetchResponse,
   InstrumentSearchResponse,
   MarketCode,
+  MarkowitzResponse,
+  RiskMetricsResponse,
   SettingsResponse,
 } from "@/types/dashboard";
 
@@ -21,7 +23,7 @@ async function readError(response: Response, fallback: string): Promise<string> 
 }
 
 export async function fetchAssets(market: MarketCode): Promise<AssetItem[]> {
-  const response = await fetch(`${API_BASE_URL}/api/assets?market=${market}`, { cache: "no-store" });
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/assets?market=${market}`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(await readError(response, "No se pudo cargar el catalogo de activos"));
   }
@@ -45,8 +47,24 @@ function mapQueryToPayload(query: DashboardQuery) {
   };
 }
 
+export async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout = 100000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+}
+
 export async function fetchDashboard(query: DashboardQuery): Promise<FetchResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/fetch`, {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/fetch`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(mapQueryToPayload(query)),
@@ -57,6 +75,34 @@ export async function fetchDashboard(query: DashboardQuery): Promise<FetchRespon
   }
 
   return (await response.json()) as FetchResponse;
+}
+
+export async function fetchMarkowitz(query: DashboardQuery): Promise<MarkowitzResponse> {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/markowitz`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(mapQueryToPayload(query)),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "No se pudo calcular la frontera de Markowitz"));
+  }
+
+  return (await response.json()) as MarkowitzResponse;
+}
+
+export async function fetchRiskMetrics(query: DashboardQuery): Promise<RiskMetricsResponse> {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/risk-metrics`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(mapQueryToPayload(query)),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "No se pudieron calcular las métricas de riesgo"));
+  }
+
+  return (await response.json()) as RiskMetricsResponse;
 }
 
 export interface FetchStreamProgress {
@@ -187,7 +233,7 @@ export async function exportDashboard(query: DashboardQuery): Promise<Blob> {
 }
 
 export async function fetchDetail(payload: DetailRequest): Promise<DetailResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/detail`, {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/detail`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -221,7 +267,7 @@ export async function searchInstruments(
     q: query,
     limit: String(limit),
   });
-  const response = await fetch(`${API_BASE_URL}/api/instrument-search?${params.toString()}`, {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/instrument-search?${params.toString()}`, {
     cache: "no-store",
   });
   if (!response.ok) {
@@ -231,18 +277,18 @@ export async function searchInstruments(
 }
 
 export async function fetchSettings(): Promise<SettingsResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/settings`, { cache: "no-store" });
+  const response = await fetchWithTimeout(`${API_BASE_URL}/api/settings`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(await readError(response, "No se pudieron cargar los ajustes"));
   }
   return (await response.json()) as SettingsResponse;
 }
 
-export async function saveSettings(fredKey: string): Promise<SettingsResponse> {
+export async function saveSettings(fredKey: string, geminiKey?: string): Promise<SettingsResponse> {
   const response = await fetch(`${API_BASE_URL}/api/settings`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fred_key: fredKey }),
+    body: JSON.stringify({ fred_key: fredKey, gemini_key: geminiKey ?? "" }),
   });
   if (!response.ok) {
     throw new Error(await readError(response, "No se pudieron guardar los ajustes"));
