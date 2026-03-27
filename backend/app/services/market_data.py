@@ -1,3 +1,4 @@
+import concurrent.futures
 import io
 import time
 from datetime import date
@@ -552,7 +553,8 @@ def fetch_all_assets(
     indices_asset_map = build_indices_asset_map(custom_assets) if market == "indices_etfs" else None
 
     total = len(labels)
-    for index, label in enumerate(labels, start=1):
+    
+    def process_asset(index: int, label: str):
         if progress_hook:
             progress_hook(index - 1, total, label, "fetching")
 
@@ -567,18 +569,16 @@ def fetch_all_assets(
         )
 
         close = frame["close"].dropna() if "close" in frame.columns else pd.Series(dtype=float)
+        
+        if market == "indices_etfs" and indices_asset_map:
+            source_mapping = str(indices_asset_map.get(label, {}).get("src", ""))
+        else:
+            source_mapping = "yahoo_fx"
+
         if close.empty:
-            failures.append(label)
             if progress_hook:
                 progress_hook(index, total, label, "failed")
-            continue
-
-        resolved_symbols[label] = resolved_symbol
-        if market == "indices_etfs" and indices_asset_map:
-            source_map[label] = str(indices_asset_map.get(label, {}).get("src", ""))
-        else:
-            source_map[label] = "yahoo_fx"
-        series_map[label] = close.rename(label)
+            return {"label": label, "failed": True}
 
         latest_date = close.index[-1]
         latest_row = frame.loc[latest_date]
@@ -589,22 +589,44 @@ def fetch_all_assets(
             else float("nan")
         )
 
-        snapshot_rows.append(
-            {
-                "Fecha": latest_date.date(),
-                "Instrumento": label,
-                "Apertura": float(latest_row["open"]),
-                "Maximo": float(latest_row["high"]),
-                "Minimo": float(latest_row["low"]),
-                "Cierre": float(latest_row["close"]),
-                "PrevClose": float(prev_close) if pd.notna(prev_close) else float("nan"),
-                "Cambio %": float(change_pct) if pd.notna(change_pct) else float("nan"),
-                "Symbol": resolved_symbol,
-                "Source": source_map.get(label, ""),
-            }
-        )
+        snapshot_row = {
+            "Fecha": latest_date.date(),
+            "Instrumento": label,
+            "Apertura": float(latest_row["open"]),
+            "Maximo": float(latest_row["high"]),
+            "Minimo": float(latest_row["low"]),
+            "Cierre": float(latest_row["close"]),
+            "PrevClose": float(prev_close) if pd.notna(prev_close) else float("nan"),
+            "Cambio %": float(change_pct) if pd.notna(change_pct) else float("nan"),
+            "Symbol": resolved_symbol,
+            "Source": source_mapping,
+        }
+
         if progress_hook:
             progress_hook(index, total, label, "loaded")
+            
+        return {
+            "label": label,
+            "failed": False,
+            "close": close.rename(label),
+            "snapshot": snapshot_row,
+            "resolved_symbol": resolved_symbol,
+            "source_map": source_mapping
+        }
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(process_asset, i, label) for i, label in enumerate(labels, start=1)]
+        results = [future.result() for future in futures]
+
+    for res in results:
+        label = res["label"]
+        if res["failed"]:
+            failures.append(label)
+        else:
+            resolved_symbols[label] = res["resolved_symbol"]
+            source_map[label] = res["source_map"]
+            series_map[label] = res["close"]
+            snapshot_rows.append(res["snapshot"])
 
     if not series_map:
         return pd.DataFrame(), pd.DataFrame(), failures, resolved_symbols
