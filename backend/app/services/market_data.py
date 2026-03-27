@@ -220,20 +220,23 @@ def fetch_yahoo_ohlc(symbol: str, start: str, end: str, retries: int = 3) -> pd.
 
     for attempt in range(retries):
         try:
-            df = yf.download(
-                symbol,
+            ticker = yf.Ticker(symbol)
+            df = ticker.history(
                 start=start,
                 end=end_yf,
-                progress=False,
                 auto_adjust=False,
-                threads=False,
+                actions=False
             )
+            
             if not isinstance(df, pd.DataFrame) or df.empty:
                 time.sleep(0.7 * (attempt + 1))
                 continue
 
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = [col[0] for col in df.columns]
+
+            if df.index.tz is not None:
+                df.index = df.index.tz_localize(None)
 
             out = pd.DataFrame(index=pd.to_datetime(df.index))
             out["open"] = pd.to_numeric(df.get("Open"), errors="coerce")
