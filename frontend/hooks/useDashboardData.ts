@@ -272,10 +272,16 @@ export function useDashboardData(market: MarketCode) {
       try {
         const response = await fetchDashboardStream(nextQuery, { onProgress });
         applyFetchResponse(nextQuery, response);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Error desconocido";
-        setError(message);
-        throw err;
+      } catch {
+        // Stream failed — fall back to regular fetch
+        try {
+          const response = await fetchDashboard(nextQuery);
+          applyFetchResponse(nextQuery, response);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Error desconocido";
+          setError(message);
+          throw err;
+        }
       } finally {
         setLoading(false);
       }
