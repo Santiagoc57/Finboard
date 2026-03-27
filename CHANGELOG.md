@@ -90,6 +90,10 @@ Formato inspirado en Keep a Changelog.
   - frontend ajustado a `output: "export"` para publicar estatico en `out/`.
   - agregado `frontend/netlify.toml` (`build` + `publish = out`).
   - se evita publicar `.next` directamente (causaba 404/MIME en chunks JS).
+- Integracion Netlify + Render corregida:
+  - se configuro `NEXT_PUBLIC_API_BASE_URL` en Netlify (production/deploy-preview/branch-deploy) apuntando a `https://finboard-3y3w.onrender.com`.
+  - se publico nuevo deploy de produccion para eliminar llamadas a `127.0.0.1:8000` en frontend.
+  - desaparece el bloqueo CORS por origen local en el sitio publico.
 
 ### Verified
 - Backend:

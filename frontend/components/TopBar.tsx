@@ -30,6 +30,9 @@ export function TopBar({ activeSection }: TopBarProps) {
             <Link className={navClass(activeSection === "monedas")} href="/monedas">
               FX / Monedas
             </Link>
+            <Link className={navClass(activeSection === "analisis")} href="/analisis">
+              Análisis
+            </Link>
             <Link className={navClass(activeSection === "settings")} href="/ajustes">
               Ajustes
             </Link>

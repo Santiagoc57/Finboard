@@ -21,6 +21,27 @@ const initialPreset = "YTD" as const;
 const PRESET_VALUES: Preset[] = ["Custom", "1M", "3M", "6M", "YTD", "1Y", "5Y", "MAX"];
 const FREQUENCY_VALUES: DashboardQuery["frequency"][] = ["D", "W", "M"];
 
+const DEFAULT_INDICES_ETFS = [
+  "Solana (SOL-USD)",
+  "Bovespa",
+  "COLCAP (ICOLCAP.CL)",
+  "DAX",
+  "IPC (MXX)",
+  "XRP (XRP-USD)",
+  "GLAB.L (ETF)",
+  "IBDR (ETF)",
+  "BNB (BNB-USD)",
+  "Gold (GC=F)",
+  "Silver (SI=F)",
+  "Copper (HG=F)",
+  "Bitcoin (BTC-USD)",
+  "Ethereum (ETH-USD)",
+  "Nasdaq 100",
+  "IBEX 35",
+  "Nikkei 225",
+  "BND (ETF)"
+];
+
 function createInitialQuery(market: MarketCode): DashboardQuery {
   const initialDates = presetDates(initialPreset);
   return {
@@ -107,10 +128,14 @@ function buildSeedQuery(
 ): DashboardQuery {
   const base = createInitialQuery(market);
   if (!stored) {
+    const defaultSelected = market === "indices_etfs"
+      ? DEFAULT_INDICES_ETFS.filter(l => catalogLabels.includes(l))
+      : catalogLabels;
+
     return {
       ...base,
-      selectedAssets: catalogLabels,
-      includedAssets: catalogLabels,
+      selectedAssets: defaultSelected.length ? defaultSelected : catalogLabels,
+      includedAssets: defaultSelected.length ? defaultSelected : catalogLabels,
     };
   }
 

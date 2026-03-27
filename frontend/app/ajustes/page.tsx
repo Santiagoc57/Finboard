@@ -15,6 +15,7 @@ function sourceLabel(source: SettingsResponse["fred"]["source"]): string {
 export default function AjustesPage() {
   const [settings, setSettings] = useState<SettingsResponse | null>(null);
   const [fredKeyInput, setFredKeyInput] = useState("");
+  const [geminiKeyInput, setGeminiKeyInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,10 +50,11 @@ export default function AjustesPage() {
     setError(null);
     setMessage(null);
     try {
-      const data = await saveSettings(fredKeyInput);
+      const data = await saveSettings(fredKeyInput, geminiKeyInput);
       setSettings(data);
       setMessage(data.message || "Ajustes guardados");
       setFredKeyInput("");
+      setGeminiKeyInput("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudieron guardar los ajustes");
     } finally {
@@ -60,15 +62,26 @@ export default function AjustesPage() {
     }
   }
 
-  async function onClear() {
+  async function onClear(type: "fred" | "gemini") {
     setSaving(true);
     setError(null);
     setMessage(null);
     try {
-      const data = await saveSettings("");
+      // Re-send the current setting of the *other* key so we don't accidentally clear both.
+      // E.g., if we are clearing fred, we pass an empty string for fred, but the 'current' input or runtime for gemini.
+      // But wait! This page saves both at once in `onSave`. Let's just create a full payload.
+      // For safety, the easiest way to "Clear" one is to read from backend response and pass it through, or let the backend do it.
+      // Actually, since the backend drops it if "", we must resend the OTHER key if we want to keep it.
+      // Wait, our backend schema defaults to "". We must change the backend to avoid resetting the other if we send "".
+      // Let's just do a blanket clear of the specific one and re-send the input of the other if any.
+      const fKey = type === "fred" ? "" : fredKeyInput;
+      const gKey = type === "gemini" ? "" : geminiKeyInput;
+
+      const data = await saveSettings(fKey, gKey);
       setSettings(data);
-      setMessage("FRED key local eliminada");
-      setFredKeyInput("");
+      setMessage(`Clave de ${type.toUpperCase()} local eliminada`);
+      if (type === "fred") setFredKeyInput("");
+      if (type === "gemini") setGeminiKeyInput("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo limpiar la clave");
     } finally {
@@ -124,7 +137,7 @@ export default function AjustesPage() {
                   className="rounded-lg border border-border-light bg-white px-4 py-2 text-sm font-semibold text-text-main transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={saving}
                   type="button"
-                  onClick={onClear}
+                  onClick={() => onClear("fred")}
                 >
                   Limpiar
                 </button>
@@ -139,6 +152,51 @@ export default function AjustesPage() {
                 </p>
                 <p>
                   Clave detectada: <span className="font-mono text-text-main">{settings.fred.masked || "-"}</span>
+                </p>
+              </div>
+            </section>
+
+            <section className="card-shell mb-6 p-5">
+              <h2 className="mb-3 text-lg font-semibold text-text-main">Gemini API Key</h2>
+              <p className="mb-4 text-sm text-text-muted">
+                Necesaria para usar el Asistente IA. Puedes obtener una clave gratuita en Google AI Studio.
+              </p>
+
+              <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto_auto]">
+                <input
+                  className="w-full rounded-lg border border-border-light bg-white px-3 py-2 text-sm"
+                  type="password"
+                  placeholder="Pega aqui tu Gemini API Key"
+                  value={geminiKeyInput}
+                  onChange={(e) => setGeminiKeyInput(e.target.value)}
+                />
+                <button
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-green-300"
+                  disabled={saving}
+                  type="button"
+                  onClick={onSave}
+                >
+                  {saving ? "Guardando..." : "Guardar ambas"}
+                </button>
+                <button
+                  className="rounded-lg border border-border-light bg-white px-4 py-2 text-sm font-semibold text-text-main transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={saving}
+                  type="button"
+                  onClick={() => onClear("gemini")}
+                >
+                  Limpiar
+                </button>
+              </div>
+
+              <div className="space-y-1 text-sm text-text-muted">
+                <p>
+                  Estado actual: <span className="font-semibold text-text-main">{settings.gemini?.configured ? "Configurada" : "No configurada"}</span>
+                </p>
+                <p>
+                  Fuente activa: <span className="font-semibold text-text-main">{sourceLabel(settings.gemini?.source ?? "none")}</span>
+                </p>
+                <p>
+                  Clave detectada: <span className="font-mono text-text-main">{settings.gemini?.masked || "-"}</span>
                 </p>
               </div>
             </section>

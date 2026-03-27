@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 
 import { instrumentIcon } from "@/lib/instrument";
 import { MarketCode, SeriesRow } from "@/types/dashboard";
@@ -6,6 +6,7 @@ import { MarketCode, SeriesRow } from "@/types/dashboard";
 interface MatrixTableProps {
   market: MarketCode;
   rows: SeriesRow[];
+  orderedColumns?: string[];
   totalRows: number;
   startRow: number;
   endRow: number;
@@ -23,7 +24,7 @@ function parseNum(value: string | number | null | undefined): number | null {
 }
 
 function formatCell(value: number | null, asPercent: boolean): string {
-  if (value === null) return "NaN";
+  if (value === null) return "—";
   if (asPercent) {
     const sign = value > 0 ? "+" : "";
     return `${sign}${value.toFixed(2)}%`;
@@ -62,6 +63,7 @@ function heatCellClass(scorePct: number | null): string {
 export function MatrixTable({
   market,
   rows,
+  orderedColumns,
   totalRows,
   startRow,
   endRow,
@@ -71,6 +73,9 @@ export function MatrixTable({
   onShowHeatmapChange,
 }: MatrixTableProps) {
   const columns = useMemo(() => {
+    if (orderedColumns && orderedColumns.length) {
+      return orderedColumns;
+    }
     if (!rows.length) return [] as string[];
     const set = new Set<string>();
     rows.forEach((row) => {
@@ -79,7 +84,7 @@ export function MatrixTable({
       });
     });
     return Array.from(set);
-  }, [rows]);
+  }, [rows, orderedColumns]);
 
   const numericRows = useMemo(() => {
     return rows.map((row) => {
@@ -129,28 +134,75 @@ export function MatrixTable({
     return out;
   }, [columns, numericRows]);
 
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const bottomScrollRef = useRef<HTMLDivElement>(null);
+  const [tableWidth, setTableWidth] = useState(0);
+  const isSyncingLeft = useRef(false);
+
+  useEffect(() => {
+    const bottomEl = bottomScrollRef.current;
+    if (!bottomEl) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setTableWidth(entry.target.scrollWidth);
+      }
+    });
+
+    const tableEl = bottomEl.querySelector("table");
+    if (tableEl) {
+      observer.observe(tableEl);
+      setTableWidth(tableEl.scrollWidth);
+    } else {
+      observer.observe(bottomEl);
+      setTableWidth(bottomEl.scrollWidth);
+    }
+
+    return () => observer.disconnect();
+  }, [numericRows, columns]);
+
+  const handleTopScroll = () => {
+    if (isSyncingLeft.current) {
+      isSyncingLeft.current = false;
+      return;
+    }
+    if (bottomScrollRef.current && topScrollRef.current) {
+      isSyncingLeft.current = true;
+      bottomScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleBottomScroll = () => {
+    if (isSyncingLeft.current) {
+      isSyncingLeft.current = false;
+      return;
+    }
+    if (bottomScrollRef.current && topScrollRef.current) {
+      isSyncingLeft.current = true;
+      topScrollRef.current.scrollLeft = bottomScrollRef.current.scrollLeft;
+    }
+  };
+
   return (
-    <section className="card-shell overflow-hidden">
+    <section className="card-shell overflow-hidden flex flex-col">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-light bg-gray-50/80 px-4 py-2.5">
         <div className="text-xs font-medium uppercase tracking-wider text-text-muted">Vista Matricial</div>
         <div className="flex items-center gap-2">
           <button
-            className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition ${
-              showPercent
-                ? "border-blue-300 bg-blue-50 text-blue-700"
-                : "border-border-light bg-white text-text-main hover:bg-gray-50"
-            }`}
+            className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition ${showPercent
+              ? "border-blue-300 bg-blue-50 text-blue-700"
+              : "border-border-light bg-white text-text-main hover:bg-gray-50"
+              }`}
             type="button"
             onClick={() => onShowPercentChange(!showPercent)}
           >
             {showPercent ? "Ver Precio" : "Ver %"}
           </button>
           <button
-            className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition ${
-              showHeatmap
-                ? "border-primary/40 bg-green-50 text-primary"
-                : "border-border-light bg-white text-text-main hover:bg-gray-50"
-            }`}
+            className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition ${showHeatmap
+              ? "border-primary/40 bg-green-50 text-primary"
+              : "border-border-light bg-white text-text-main hover:bg-gray-50"
+              }`}
             type="button"
             onClick={() => onShowHeatmapChange(!showHeatmap)}
           >
@@ -159,7 +211,20 @@ export function MatrixTable({
         </div>
       </div>
 
-      <div className="max-h-[620px] overflow-auto">
+      <div
+        ref={topScrollRef}
+        className="overflow-x-auto overflow-y-hidden border-b border-border-light bg-gray-50 flex-none"
+        style={{ height: "14px" }}
+        onScroll={handleTopScroll}
+      >
+        <div style={{ width: tableWidth ? `${tableWidth}px` : "100%", height: "1px" }} />
+      </div>
+
+      <div
+        ref={bottomScrollRef}
+        className="max-h-[620px] overflow-auto flex-1 custom-scrollbar"
+        onScroll={handleBottomScroll}
+      >
         <table className="w-full min-w-[1200px] border-collapse text-right">
           <thead className="table-head">
             <tr>
@@ -199,9 +264,9 @@ export function MatrixTable({
             {displayRows.map((row, rowIdx) => (
               <tr
                 key={`${String(row.date)}-${rowIdx}`}
-                className={`${rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50/40"} transition-colors hover:bg-gray-100/70`}
+                className={`group ${rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50"} transition-colors hover:bg-gray-100`}
               >
-                <td className="table-cell-mono sticky left-0 z-10 border-r border-border-light bg-inherit px-4 py-2.5 text-left font-bold text-text-main shadow-[4px_0_8px_-4px_rgba(0,0,0,0.08)]">
+                <td className={`table-cell-mono sticky left-0 z-10 border-r border-border-light px-4 py-2.5 text-left font-bold text-text-main shadow-[4px_0_8px_-4px_rgba(0,0,0,0.08)] transition-colors ${rowIdx % 2 === 0 ? "bg-white" : "bg-gray-50"} group-hover:bg-gray-100`}>
                   {String(row.date)}
                 </td>
                 {columns.map((col) => {
@@ -219,9 +284,8 @@ export function MatrixTable({
                   return (
                     <td
                       key={`${String(row.date)}-${col}`}
-                      className={`table-cell-mono px-3 py-2.5 ${
-                        showHeatmap ? heatCellClass(score) : "text-slate-700"
-                      }`}
+                      className={`table-cell-mono px-3 py-2.5 ${showHeatmap ? heatCellClass(score) : "text-slate-700"
+                        }`}
                     >
                       {formatCell(value, showPercent)}
                     </td>

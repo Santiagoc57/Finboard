@@ -4,6 +4,7 @@ import { useEffect, useRef, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { AddInstrumentModal } from "@/components/AddInstrumentModal";
+import { AiAssistant } from "@/components/AiAssistant";
 import { ChipRow } from "@/components/ChipRow";
 import { ConfigPanel } from "@/components/ConfigPanel";
 import { MatrixTable } from "@/components/MatrixTable";
@@ -546,9 +547,8 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
           <div className="flex w-full items-center gap-2 md:w-auto">
             <div className="inline-flex rounded-lg border border-border-light bg-white p-0.5">
               <button
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  tableMode === "snapshot" ? "bg-primary text-white" : "text-text-main hover:bg-gray-50"
-                }`}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${tableMode === "snapshot" ? "bg-primary text-white" : "text-text-main hover:bg-gray-50"
+                  }`}
                 type="button"
                 onClick={() => {
                   setTableMode("snapshot");
@@ -558,9 +558,8 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
                 Mercados
               </button>
               <button
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  tableMode === "matrix" ? "bg-primary text-white" : "text-text-main hover:bg-gray-50"
-                }`}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${tableMode === "matrix" ? "bg-primary text-white" : "text-text-main hover:bg-gray-50"
+                  }`}
                 type="button"
                 onClick={() => {
                   setTableMode("matrix");
@@ -579,6 +578,15 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
+            />
+
+            <AiAssistant
+              market={market}
+              contextData={
+                tableMode === "snapshot"
+                  ? { type: "snapshot", rows: snapshot.pageRows }
+                  : { type: "matrix", rows: matrixPageRows }
+              }
             />
           </div>
         </section>
@@ -610,6 +618,7 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
           <MatrixTable
             rows={matrixPageRows}
             market={market}
+            orderedColumns={assetsLoaded}
             totalRows={matrixTotalRows}
             startRow={matrixTotalRows ? 1 : 0}
             endRow={matrixTotalRows}

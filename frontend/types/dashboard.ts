@@ -1,5 +1,5 @@
 export type MarketCode = "indices_etfs" | "monedas";
-export type TopNavSection = MarketCode | "settings";
+export type TopNavSection = MarketCode | "settings" | "analisis";
 export type FrequencyCode = "D" | "W" | "M";
 export type Preset = "Custom" | "1M" | "3M" | "6M" | "YTD" | "1Y" | "5Y" | "MAX";
 export type AssetSource = "fred" | "yahoo" | "stooq";
@@ -160,6 +160,35 @@ export interface SettingsResponse {
     runtime_configured: boolean;
     env_configured: boolean;
   };
+  gemini: {
+    configured: boolean;
+    source: "runtime" | "env" | "none";
+    masked: string;
+    runtime_configured: boolean;
+    env_configured: boolean;
+  };
   providers: ProviderInfo[];
   message?: string;
+}
+
+export interface MarkowitzPoint {
+  retorno: number;
+  volatilidad: number;
+  sharpe: number;
+  pesos: Record<string, number>;
+  tipo: "Max Sharpe" | "Min Volatilidad" | "Random";
+}
+
+export interface MarkowitzResponse {
+  puntos: MarkowitzPoint[];
+}
+
+export interface RiskMetric {
+  instrument: string;
+  sharpe: number | null;
+  max_drawdown: number | null;
+}
+
+export interface RiskMetricsResponse {
+  metrics: RiskMetric[];
 }

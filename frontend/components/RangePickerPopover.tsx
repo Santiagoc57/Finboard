@@ -64,7 +64,7 @@ export function RangePickerPopover({
   if (!open) return null;
 
   return (
-    <section className="absolute left-0 top-full z-40 mt-2 w-full max-w-[640px] rounded-xl border border-border-light bg-white p-4 shadow-panel">
+    <section className="absolute left-0 top-full z-40 mt-2 w-[calc(100vw-2rem)] sm:w-[640px] rounded-xl border border-border-light bg-white p-4 shadow-panel">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-text-main">Seleccionar rango</p>
