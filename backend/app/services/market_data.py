@@ -153,10 +153,14 @@ def fetch_fred_close(series_id: str, start: str, end: str, api_key: str) -> pd.S
         "observation_start": start,
         "observation_end": end,
     }
-    response = requests.get(url, params=params, timeout=30)
-    response.raise_for_status()
+    try:
+        response = requests.get(url, params=params, timeout=30)
+        response.raise_for_status()
+        observations = response.json().get("observations", [])
+    except Exception as e:
+        print(f"Error fetching FRED {series_id}: {e}")
+        return pd.Series(dtype=float)
 
-    observations = response.json().get("observations", [])
     data = {
         item["date"]: _as_float(item["value"])
         for item in observations
@@ -172,10 +176,14 @@ def fetch_fred_close(series_id: str, start: str, end: str, api_key: str) -> pd.S
 
 def fetch_stooq_ohlc(symbol: str) -> pd.DataFrame:
     url = "https://stooq.com/q/d/l/"
-    response = requests.get(url, params={"s": symbol, "i": "d"}, timeout=30)
-    response.raise_for_status()
+    try:
+        response = requests.get(url, params={"s": symbol, "i": "d"}, timeout=30)
+        response.raise_for_status()
+        df = pd.read_csv(io.StringIO(response.text))
+    except Exception as e:
+        print(f"Error fetching Stooq {symbol}: {e}")
+        return _empty_ohlc_frame()
 
-    df = pd.read_csv(io.StringIO(response.text))
     needed = ["Date", "Open", "High", "Low", "Close"]
     if df.empty or not all(col in df.columns for col in needed):
         return _empty_ohlc_frame()
@@ -203,12 +211,18 @@ def fetch_stooq_ohlc(symbol: str) -> pd.DataFrame:
 def fetch_yahoo_ohlc(symbol: str, start: str, end: str, retries: int = 3) -> pd.DataFrame:
     last_error: Exception | None = None
 
+    try:
+        end_dt = pd.to_datetime(end) + pd.Timedelta(days=1)
+        end_yf = end_dt.strftime("%Y-%m-%d")
+    except Exception:
+        end_yf = end
+
     for attempt in range(retries):
         try:
             df = yf.download(
                 symbol,
                 start=start,
-                end=end,
+                end=end_yf,
                 progress=False,
                 auto_adjust=False,
                 threads=False,

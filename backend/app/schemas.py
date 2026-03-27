@@ -44,8 +44,8 @@ class FetchRequest(BaseModel):
     @field_validator("assets")
     @classmethod
     def validate_assets_not_empty(cls, value: list[str]) -> list[str]:
-        if not value:
-            raise ValueError("Selecciona al menos un activo")
+        # if not value:
+        #     raise ValueError("Selecciona al menos un activo")
         return value
 
 
@@ -83,3 +83,22 @@ class DetailRequest(BaseModel):
 
 class SettingsUpdateRequest(BaseModel):
     fred_key: str = ""
+    gemini_key: str = ""
+
+
+class ChatRequest(BaseModel):
+    market: MarketCode = DEFAULT_MARKET
+    context_type: str = "snapshot"
+    prompt: str
+    rows: list[dict] | None = Field(default_factory=list)
+    markowitz_points: list[dict] | None = Field(default_factory=list)
+    risk_metrics: list[dict] | None = Field(default_factory=list)
+    context_data: list[dict] | None = None  # deprecated
+
+    @field_validator("prompt")
+    @classmethod
+    def validate_prompt(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("El prompt no puede estar vacío")
+        return cleaned
