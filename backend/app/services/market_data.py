@@ -177,8 +177,9 @@ def fetch_fred_close(series_id: str, start: str, end: str, api_key: str) -> pd.S
 
 def fetch_stooq_ohlc(symbol: str) -> pd.DataFrame:
     url = "https://stooq.com/q/d/l/"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
     try:
-        response = requests.get(url, params={"s": symbol, "i": "d"}, timeout=30)
+        response = requests.get(url, params={"s": symbol, "i": "d"}, headers=headers, timeout=30)
         response.raise_for_status()
         df = pd.read_csv(io.StringIO(response.text))
     except Exception as e:
