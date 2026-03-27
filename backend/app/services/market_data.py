@@ -10,6 +10,18 @@ import requests
 import yfinance as yf
 from dateutil.relativedelta import relativedelta
 
+def _get_yf_session():
+    session = requests.Session()
+    session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive"
+    })
+    return session
+
+YF_SESSION = _get_yf_session()
+
 from ..config import (
     ASSETS_INDICES_ETFS,
     CCY_FLAGS,
@@ -220,7 +232,7 @@ def fetch_yahoo_ohlc(symbol: str, start: str, end: str, retries: int = 3) -> pd.
 
     for attempt in range(retries):
         try:
-            ticker = yf.Ticker(symbol)
+            ticker = yf.Ticker(symbol, session=YF_SESSION)
             df = ticker.history(
                 start=start,
                 end=end_yf,
