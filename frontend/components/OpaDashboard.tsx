@@ -85,6 +85,12 @@ interface OpaDashboardProps {
     market: MarketCode;
 }
 
+type OpaTableMode = "summary" | "matrix" | "chart" | "markowitz";
+
+function isOpaTableMode(value: string | null): value is OpaTableMode {
+    return value === "summary" || value === "matrix" || value === "chart" || value === "markowitz";
+}
+
 export function OpaDashboard({ market }: OpaDashboardProps) {
     const {
         query,
@@ -100,12 +106,10 @@ export function OpaDashboard({ market }: OpaDashboardProps) {
     const LS_OPA_DATE = `finboard_opa_date_${market}`;
     const LS_TABLE_MODE = `finboard_table_mode_${market}`;
 
-    const [opaDate, setOpaDateState] = useState<string>(() => {
-        if (typeof window === "undefined") return "";
-        return localStorage.getItem(LS_OPA_DATE) ?? "";
-    });
+    const [prefsLoaded, setPrefsLoaded] = useState(false);
+    const [prefsMarket, setPrefsMarket] = useState<MarketCode | null>(null);
+    const [opaDate, setOpaDateState] = useState<string>("");
     const setOpaDate = (date: string) => {
-        localStorage.setItem(LS_OPA_DATE, date);
         setOpaDateState(date);
     };
 
@@ -116,13 +120,8 @@ export function OpaDashboard({ market }: OpaDashboardProps) {
     const [showRangePicker, setShowRangePicker] = useState(false);
     const [showOpaRangePicker, setShowOpaRangePicker] = useState(false);
 
-    const [tableMode, setTableModeState] = useState<"summary" | "matrix" | "chart" | "markowitz">(() => {
-        if (typeof window === "undefined") return "matrix";
-        const saved = localStorage.getItem(LS_TABLE_MODE);
-        return (saved as "summary" | "matrix" | "chart" | "markowitz") ?? "matrix";
-    });
-    const setTableMode = (mode: "summary" | "matrix" | "chart" | "markowitz") => {
-        localStorage.setItem(LS_TABLE_MODE, mode);
+    const [tableMode, setTableModeState] = useState<OpaTableMode>("matrix");
+    const setTableMode = (mode: OpaTableMode) => {
         setTableModeState(mode);
     };
 
@@ -149,6 +148,28 @@ export function OpaDashboard({ market }: OpaDashboardProps) {
 
     // Default to today's date if nothing was saved
     const todayIso = useMemo(() => toDateInputValue(new Date()), []);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const savedDate = window.localStorage.getItem(LS_OPA_DATE) ?? "";
+        const savedMode = window.localStorage.getItem(LS_TABLE_MODE);
+
+        setOpaDateState(savedDate);
+        setTableModeState(isOpaTableMode(savedMode) ? savedMode : "matrix");
+        setPrefsMarket(market);
+        setPrefsLoaded(true);
+    }, [LS_OPA_DATE, LS_TABLE_MODE, market]);
+
+    useEffect(() => {
+        if (!prefsLoaded || prefsMarket !== market || typeof window === "undefined") return;
+        window.localStorage.setItem(LS_OPA_DATE, opaDate);
+    }, [LS_OPA_DATE, market, opaDate, prefsLoaded, prefsMarket]);
+
+    useEffect(() => {
+        if (!prefsLoaded || prefsMarket !== market || typeof window === "undefined") return;
+        window.localStorage.setItem(LS_TABLE_MODE, tableMode);
+    }, [LS_TABLE_MODE, market, prefsLoaded, prefsMarket, tableMode]);
 
     useEffect(() => {
         if (!opaDate) {

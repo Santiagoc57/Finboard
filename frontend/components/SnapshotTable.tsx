@@ -8,6 +8,7 @@ import { MarketCode } from "@/types/dashboard";
 interface SnapshotTableProps {
   market: MarketCode;
   rows: SnapshotViewRow[];
+  loading?: boolean;
   sparklineByInstrument: Record<string, number[]>;
   totalRows: number;
   startRow: number;
@@ -59,6 +60,7 @@ function Sparkline({ points, positive }: SparklineProps) {
 export function SnapshotTable({
   market,
   rows,
+  loading = false,
   sparklineByInstrument,
   totalRows,
   startRow,
@@ -208,7 +210,7 @@ export function SnapshotTable({
             {!rows.length && (
               <tr>
                 <td className="px-6 py-10 text-center text-sm text-text-muted" colSpan={8}>
-                  No hay datos para mostrar con los filtros actuales.
+                  {loading ? "Cargando datos de mercado..." : "No hay datos para mostrar con los filtros actuales."}
                 </td>
               </tr>
             )}

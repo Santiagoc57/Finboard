@@ -6,6 +6,7 @@ import { MarketCode, SeriesRow } from "@/types/dashboard";
 interface MatrixTableProps {
   market: MarketCode;
   rows: SeriesRow[];
+  loading?: boolean;
   orderedColumns?: string[];
   totalRows: number;
   startRow: number;
@@ -63,6 +64,7 @@ function heatCellClass(scorePct: number | null): string {
 export function MatrixTable({
   market,
   rows,
+  loading = false,
   orderedColumns,
   totalRows,
   startRow,
@@ -297,7 +299,7 @@ export function MatrixTable({
             {!displayRows.length && (
               <tr>
                 <td className="px-6 py-10 text-center text-sm text-text-muted" colSpan={Math.max(columns.length + 1, 1)}>
-                  No hay datos para mostrar con los filtros actuales.
+                  {loading ? "Cargando datos de mercado..." : "No hay datos para mostrar con los filtros actuales."}
                 </td>
               </tr>
             )}

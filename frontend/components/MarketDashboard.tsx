@@ -63,6 +63,10 @@ interface MarketDashboardProps {
 }
 
 const SORT_FIELDS: SnapshotSortField[] = ["date", "instrument", "open", "high", "low", "close", "change_pct"];
+const DEFAULT_SORT_STATE: SnapshotSortState = {
+  field: "change_pct",
+  direction: "desc",
+};
 
 function isSortField(value: string | undefined): value is SnapshotSortField {
   if (!value) return false;
@@ -147,10 +151,7 @@ function loadUiState(market: MarketCode): {
     tableMode: "snapshot" as const,
     searchTerm: "",
     instrumentFilters: null as string[] | null,
-    sortState: {
-      field: "change_pct" as SnapshotSortField,
-      direction: "desc" as SnapshotSortDirection,
-    },
+    sortState: DEFAULT_SORT_STATE,
     matrixShowPercent: false,
     matrixShowHeatmap: false,
   };
@@ -182,7 +183,6 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
   const copy = PAGE_COPY[market];
   const router = useRouter();
   const canAddInstruments = market === "indices_etfs";
-  const initialUiState = useMemo(() => loadUiState(market), [market]);
 
   const {
     catalog,
@@ -203,16 +203,18 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
   const [showRangePicker, setShowRangePicker] = useState(false);
   const [showAddInstrumentModal, setShowAddInstrumentModal] = useState(false);
   const [addingInstruments, setAddingInstruments] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(initialUiState.searchTerm);
-  const [instrumentFilters, setInstrumentFilters] = useState<string[] | null>(initialUiState.instrumentFilters);
+  const [uiPrefsLoaded, setUiPrefsLoaded] = useState(false);
+  const [uiPrefsMarket, setUiPrefsMarket] = useState<MarketCode | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [instrumentFilters, setInstrumentFilters] = useState<string[] | null>(null);
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
-  const [tableMode, setTableMode] = useState<"snapshot" | "matrix">(initialUiState.tableMode);
+  const [tableMode, setTableMode] = useState<"snapshot" | "matrix">("snapshot");
   const [refreshProgress, setRefreshProgress] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [sortState, setSortState] = useState<SnapshotSortState>(initialUiState.sortState);
-  const [matrixShowPercent, setMatrixShowPercent] = useState(initialUiState.matrixShowPercent);
-  const [matrixShowHeatmap, setMatrixShowHeatmap] = useState(initialUiState.matrixShowHeatmap);
+  const [sortState, setSortState] = useState<SnapshotSortState>(DEFAULT_SORT_STATE);
+  const [matrixShowPercent, setMatrixShowPercent] = useState(false);
+  const [matrixShowHeatmap, setMatrixShowHeatmap] = useState(false);
   const refreshResetTimeoutRef = useRef<number | null>(null);
   const snapshotPageSize = Math.max(snapshotRawRows.length, 1);
 
@@ -255,6 +257,19 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
   const matrixPageRows = matrixRows;
 
   useEffect(() => {
+    const nextUiState = loadUiState(market);
+    setSearchTerm(nextUiState.searchTerm);
+    setInstrumentFilters(nextUiState.instrumentFilters);
+    setSortState(nextUiState.sortState);
+    setMatrixShowPercent(nextUiState.matrixShowPercent);
+    setMatrixShowHeatmap(nextUiState.matrixShowHeatmap);
+    setTableMode(nextUiState.tableMode);
+    setPage(1);
+    setUiPrefsMarket(market);
+    setUiPrefsLoaded(true);
+  }, [market]);
+
+  useEffect(() => {
     const safePage = snapshot.safePage;
     if (safePage !== page) {
       setPage(safePage);
@@ -284,6 +299,7 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
   }, [instrumentFilters, snapshot.instrumentOptions]);
 
   useEffect(() => {
+    if (!uiPrefsLoaded || uiPrefsMarket !== market) return;
     writeUiPrefs(market, {
       tableMode,
       searchTerm,
@@ -302,9 +318,12 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
     sortState.direction,
     sortState.field,
     tableMode,
+    uiPrefsMarket,
+    uiPrefsLoaded,
   ]);
 
   const rangeLabel = `${query.startDate} → ${query.endDate}`;
+  const isInitialRemoteLoad = loading && !snapshotRawRows.length && !viewRows.length;
 
   function applyPreset(preset: Preset) {
     if (preset === "Custom") {
@@ -595,6 +614,12 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
           <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
         )}
 
+        {isInitialRemoteLoad && (
+          <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
+            Cargando datos de mercado. En la versión online esto puede tardar unos segundos mientras responde el backend.
+          </div>
+        )}
+
         {!!failures.length && (
           <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
             No se pudieron cargar: {failures.join(", ")}
@@ -605,6 +630,7 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
           <SnapshotTable
             endRow={Math.min(snapshot.pageStart + snapshot.pageRows.length, snapshot.totalRows)}
             highlightInstrument={snapshot.highlightInstrument}
+            loading={loading}
             market={market}
             rows={snapshot.pageRows}
             sparklineByInstrument={sparklineByInstrument}
@@ -617,6 +643,7 @@ export function MarketDashboard({ market }: MarketDashboardProps) {
         ) : (
           <MatrixTable
             rows={matrixPageRows}
+            loading={loading}
             market={market}
             orderedColumns={assetsLoaded}
             totalRows={matrixTotalRows}
