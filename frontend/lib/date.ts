@@ -31,6 +31,15 @@ export function toDateInputValue(input: Date): string {
   return `${input.getFullYear()}-${pad(input.getMonth() + 1)}-${pad(input.getDate())}`;
 }
 
+export const DEFAULT_RANGE_START_DATE = "2026-01-01";
+
+export function defaultRangeDates(refDate = new Date()): { startDate: string; endDate: string } {
+  return {
+    startDate: DEFAULT_RANGE_START_DATE,
+    endDate: toDateInputValue(refDate),
+  };
+}
+
 function addMonths(base: Date, months: number): Date {
   const out = new Date(base);
   out.setMonth(out.getMonth() + months);

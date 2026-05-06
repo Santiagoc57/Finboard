@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { fetchAssets, fetchDashboard, fetchDashboardStream, FetchStreamProgress } from "@/lib/api";
-import { presetDates } from "@/lib/date";
+import { DEFAULT_RANGE_START_DATE, defaultRangeDates, presetDates } from "@/lib/date";
 import { readQueryPrefs, writeQueryPrefs } from "@/lib/prefs";
 import {
   AssetItem,
@@ -17,7 +17,7 @@ import {
   SnapshotRow,
 } from "@/types/dashboard";
 
-const initialPreset = "YTD" as const;
+const initialPreset = "Custom" as const;
 const PRESET_VALUES: Preset[] = ["Custom", "1M", "3M", "6M", "YTD", "1Y", "5Y", "MAX"];
 const FREQUENCY_VALUES: DashboardQuery["frequency"][] = ["D", "W", "M"];
 
@@ -43,7 +43,7 @@ const DEFAULT_INDICES_ETFS = [
 ];
 
 function createInitialQuery(market: MarketCode): DashboardQuery {
-  const initialDates = presetDates(initialPreset);
+  const initialDates = defaultRangeDates();
   return {
     market,
     startDate: initialDates.startDate,
@@ -156,7 +156,15 @@ function buildSeedQuery(
   const invertedAssetsRaw = normalizeStringArray(stored.invertedAssets);
   const invertedAssets = invertedAssetsRaw.filter((label) => availableSet.has(label));
 
-  const range = clampDateRange(stored.startDate, stored.endDate, base.startDate, base.endDate);
+  const storedPreset = isValidPreset(stored.preset) ? stored.preset : base.preset;
+  const range =
+    storedPreset === "Custom"
+      ? clampDateRange(stored.startDate, stored.endDate, base.startDate, base.endDate)
+      : presetDates(storedPreset);
+
+  if (range.startDate === DEFAULT_RANGE_START_DATE && range.endDate < base.endDate) {
+    range.endDate = base.endDate;
+  }
 
   return {
     ...base,
@@ -164,7 +172,7 @@ function buildSeedQuery(
     frequency: isValidFrequency(stored.frequency) ? stored.frequency : base.frequency,
     excludeWeekends:
       typeof stored.excludeWeekends === "boolean" ? stored.excludeWeekends : base.excludeWeekends,
-    preset: isValidPreset(stored.preset) ? stored.preset : base.preset,
+    preset: storedPreset,
     selectedAssets: finalSelected,
     includedAssets: finalIncluded,
     invertGlobal: Boolean(stored.invertGlobal),

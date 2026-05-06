@@ -59,7 +59,7 @@ def build_fetch_cache_key(
     normalized_custom.sort(key=lambda row: (row["label"], row["source"], row["symbol"]))
 
     payload = {
-        "v": 1,
+        "v": 2,
         "market": market,
         "start_date": start_date,
         "end_date": end_date,

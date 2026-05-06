@@ -8,9 +8,9 @@ MarketCode = Literal["indices_etfs", "monedas"]
 DEFAULT_MARKET: MarketCode = "indices_etfs"
 
 ASSETS_INDICES_ETFS = {
-    "S&P 500": {"src": "fred", "id": "SP500"},
-    "Dow Jones": {"src": "fred", "id": "DJIA"},
-    "Nasdaq Comp": {"src": "fred", "id": "NASDAQCOM"},
+    "S&P 500": {"src": "yahoo", "id": "^GSPC"},
+    "Dow Jones": {"src": "yahoo", "id": "^DJI"},
+    "Nasdaq Comp": {"src": "yahoo", "id": "^IXIC"},
     "Nasdaq 100": {"src": "yahoo", "id": "^NDX"},
     "DAX": {"src": "yahoo", "id": "^GDAXI"},
     "IBEX 35": {"src": "yahoo", "id": "^IBEX"},

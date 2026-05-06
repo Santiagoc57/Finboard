@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { presetDates, utcClockToBogotaLabel } from "./date";
+import { defaultRangeDates, presetDates, utcClockToBogotaLabel } from "./date";
 
 describe("utcClockToBogotaLabel", () => {
   it("convierte UTC a COT (UTC-5)", () => {
@@ -26,5 +26,14 @@ describe("presetDates", () => {
     const out = presetDates("MAX", ref);
     expect(out.startDate).toBe("1990-01-01");
     expect(out.endDate).toBe("2026-02-17");
+  });
+});
+
+describe("defaultRangeDates", () => {
+  it("usa inicio fijo en 2026 y fin segun referencia", () => {
+    const ref = new Date("2026-05-08T12:00:00Z");
+    const out = defaultRangeDates(ref);
+    expect(out.startDate).toBe("2026-01-01");
+    expect(out.endDate).toBe("2026-05-08");
   });
 });

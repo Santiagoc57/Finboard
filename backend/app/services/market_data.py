@@ -635,7 +635,7 @@ def fetch_all_assets(
     if not series_map:
         return pd.DataFrame(), pd.DataFrame(), failures, resolved_symbols
 
-    base_df = pd.concat(series_map.values(), axis=1).sort_index().round(DECIMALS)
+    base_df = pd.concat(series_map.values(), axis=1).sort_index().ffill().round(DECIMALS)
     snapshot_df = pd.DataFrame(snapshot_rows)
     if not snapshot_df.empty:
         snapshot_df = snapshot_df.sort_values("Cambio %", ascending=False, na_position="last").reset_index(drop=True)
